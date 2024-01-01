@@ -339,10 +339,8 @@ export type CheckRepeatedTupleCases = [
 
 // increment and decrement list representation of a number
 type ListNum = unknown[];
-type Inc<CountList extends ListNum> = [...CountList, 1];
-type Dec<CountList extends ListNum> = CountList extends [infer First, ...infer CountList]
-  ? CountList
-  : []
+type Inc<Num extends string | number> = N<ListInc<L<Num>>>
+type ListInc<CountList extends ListNum> = [...CountList, 1];
 // convert CountList to string representation of a number
 type N<CountList extends ListNum> = `${CountList['length']}`;
 // convert number or string to CountList
@@ -350,20 +348,25 @@ type L<Num extends string | number, Accum extends ListNum = []> = {length: `${Ac
   ? Accum
   : L<Num, [...Accum, 1]>;
 
+type Dec<Num extends string | number> =
+  L<Num> extends [infer _First, ...infer Rest]
+    ? N<Rest>
+    : '0'
+
+export type IncTest = Inc<'0'>
 export type GetL1 = L<'4'>
 export type GetL2 = L<4>
-export type GetLDec = N<Inc<GetL1>>
-export type TestDec = Dec<[1,1,1]>['length']
+export type GetLDec = Inc<'4'>
 
-type Pop<List extends unknown[], CountList extends ListNum> =
-  CountList['length'] extends 0
+type Pop<List extends unknown[], Count extends string> =
+  Count extends '0'
     ? List
     : List extends [infer _First, ...infer Rest]
-      ? Pop<Rest, Dec<CountList>>
+      ? Pop<Rest, Dec<Count>>
       : List
 
-export type TestPop1 = Pop<[1,2,3,4], L<2>>
-export type TestPop2 = Pop<[1], L<2>>
+export type TestPop1 = Pop<[1,2,3,4], '2'>
+export type TestPop2 = Pop<[1], '2'>
 
 // List = [3]
 // ChunkLen = 2
@@ -387,14 +390,14 @@ type Chunk<List extends unknown[], ChunkLen extends number, ChunkedList extends 
   List extends []
     ? ChunkedList
     : Chunk<
-        Pop<List, L<ChunkLen>>,
+        Pop<List, `${ChunkLen}`>,
         ChunkLen, 
         [...ChunkedList, GetChunk<List, ChunkLen>]
       >
 
-type ChunkTest1 = Chunk<[1, 2, 3], 2>;
+export type ChunkTest1 = Chunk<[1, 2, 3], 2>;
 
-type ChunkCases = [
+export type ChunkCases = [
   Expect<Equal<Chunk<[], 1>, []>>,
   Expect<Equal<Chunk<[1, 2, 3], 1>, [[1], [2], [3]]>>,
   Expect<Equal<Chunk<[1, 2, 3], 2>, [[1, 2], [3]]>>,
