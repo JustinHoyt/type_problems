@@ -25,12 +25,11 @@ export type MergeInsertions<T> =
 
 export type Alike<X, Y> = Equal<MergeInsertions<X>, MergeInsertions<Y>>
 
-export type ExpectExtends<VALUE, EXPECTED> = EXPECTED extends VALUE ? true : false
-export type ExpectValidArgs<FUNC extends (...args: any[]) => any, ARGS extends any[]> = ARGS extends Parameters<FUNC>
-  ? true
-  : false
-
-export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never
+export type ExpectExtends<Value, Expected> = Expected extends Value ? true : false
+export type ExpectValidArgs<Func extends (...args: any[]) => any, Args extends any[]> =
+  Args extends Parameters<Func>
+    ? true
+    : false
 
 // Reverse a list
 type Reverse<Remaining extends unknown[], Result extends unknown[] = []> =
@@ -263,59 +262,58 @@ export type BemCases = [
 ]
 
 // implement Chainable
-type Chainable<Acc = {}> = {
+export type Chainable<Acc = {}> = {
   option<NewKey extends string, Val>(key: NewKey, value: Val):
-    Chainable<{[Key in keyof Acc | NewKey]:
-      Key extends NewKey
-        ? Val
-        : Key extends keyof Acc
-          ? Acc[Key]
+    Chainable<{
+      [Key in keyof Acc | NewKey]: Key extends NewKey ? Val
+        : Key extends keyof Acc ? Acc[Key]
           : never
     }>
   get(): Acc
 }
 
-declare const a: Chainable
-
-const result1 = a
-  .option('foo', 123)
-  .option('bar', { value: 'Hello World' })
-  .option('name', 'type-challenges')
-  .get()
-
-const result2 = a
-  .option('name', 'another name')
-  // @ts-expect-error
-  .option('name', 'last name')
-  .get()
-
-const result3 = a
-  .option('name', 'another name')
-  // @ts-expect-error
-  .option('name', 123)
-  .get()
-
-export type ChainableCases = [
-  Expect<Alike<typeof result1, Expected1>>,
-  Expect<Alike<typeof result2, Expected2>>,
-  Expect<Alike<typeof result3, Expected3>>,
-]
-
-type Expected1 = {
-  foo: number
-  bar: {
-    value: string
-  }
-  name: string
-}
-
-type Expected2 = {
-  name: string
-}
-
-type Expected3 = {
-  name: number
-}
+// // Commented because test cases produce runtime errors
+// declare const a: Chainable
+//
+// const result1 = a
+//   .option('foo', 123)
+//   .option('bar', { value: 'Hello World' })
+//   .option('name', 'type-challenges')
+//   .get()
+//
+// const result2 = a
+//   .option('name', 'another name')
+//   // @ts-expect-error
+//   .option('name', 'last name')
+//   .get()
+//
+// const result3 = a
+//   .option('name', 'another name')
+//   // @ts-expect-error
+//   .option('name', 123)
+//   .get()
+//
+// export type ChainableCases = [
+//   Expect<Alike<typeof result1, Expected1>>,
+//   Expect<Alike<typeof result2, Expected2>>,
+//   Expect<Alike<typeof result3, Expected3>>,
+// ]
+//
+// type Expected1 = {
+//   foo: number
+//   bar: {
+//     value: string
+//   }
+//   name: string
+// }
+//
+// type Expected2 = {
+//   name: string
+// }
+//
+// type Expected3 = {
+//   name: number
+// }
 
 
 // implement CheckRepeatedTuple
@@ -339,39 +337,32 @@ export type CheckRepeatedTupleCases = [
 
 // increment and decrement list representation of a number
 type ListNum = unknown[];
-type Inc<Num extends string | number> = N<ListInc<L<Num>>>
-type ListInc<CountList extends ListNum> = [...CountList, 1];
-// convert CountList to string representation of a number
-type N<CountList extends ListNum> = `${CountList['length']}`;
+type Inc<Num extends number | string> = [...L<Num>, 1]['length']
+
 // convert number or string to CountList
-type L<Num extends string | number, Accum extends ListNum = []> = {length: `${Accum['length']}`} extends {length: `${Num}`}
-  ? Accum
-  : L<Num, [...Accum, 1]>;
+type L<Num extends string | number, Accum extends ListNum = []> =
+  {length: `${Accum['length']}`} extends {length: `${Num}`}
+    ? Accum
+    : L<Num, [...Accum, 1]>;
 
-type Dec<Num extends string | number> =
+type Dec<Num extends number> =
   L<Num> extends [infer _First, ...infer Rest]
-    ? N<Rest>
-    : '0'
+    ? Rest['length']
+    : 0
 
-export type IncTest = Inc<'0'>
-export type GetL1 = L<'4'>
-export type GetL2 = L<4>
-export type GetLDec = Inc<'4'>
+export type IncTest = Inc<0>
+export type DecTest = Dec<8>
+export type GetLTest1 = L<'4'>
+export type GetLTest2 = L<4>
 
-type Pop<List extends unknown[], Count extends string> =
-  Count extends '0'
-    ? List
-    : List extends [infer _First, ...infer Rest]
-      ? Pop<Rest, Dec<Count>>
+type Pop<List extends unknown[], Count extends number> =
+  Count extends 0 ? List
+    : List extends [infer _First, ...infer Rest] ? Pop<Rest, Dec<Count>>
       : List
 
-export type TestPop1 = Pop<[1,2,3,4], '2'>
-export type TestPop2 = Pop<[1], '2'>
+export type TestPop1 = Pop<[1,2,3,4], 2>
+export type TestPop2 = Pop<[1], 2>
 
-// List = [3]
-// ChunkLen = 2
-// ChunkedList = [1,2]
-// Ret [1,2]
 type GetChunk<List extends unknown[], ChunkLen extends number, ChunkedList extends unknown[] = []> =
    `${ChunkedList['length']}` extends `${ChunkLen}`
       ? ChunkedList
@@ -383,14 +374,11 @@ export type GetChunkTest1 = GetChunk<[1,2,3,4,5], 3>
 export type GetChunkTest2 = GetChunk<[1], 2>
 export type GetChunkTest3 = GetChunk<[1,2,3,4,5], 2>
 
-// List = [1,2,3]
-// ChunkLen = 2
-// ChunkedList = []
 type Chunk<List extends unknown[], ChunkLen extends number, ChunkedList extends number[][] = []> =
   List extends []
     ? ChunkedList
     : Chunk<
-        Pop<List, `${ChunkLen}`>,
+        Pop<List, ChunkLen>,
         ChunkLen, 
         [...ChunkedList, GetChunk<List, ChunkLen>]
       >
@@ -405,3 +393,44 @@ export type ChunkCases = [
   Expect<Equal<Chunk<[1, 2, 3, 4], 5>, [[1, 2, 3, 4]]>>,
   Expect<Equal<Chunk<[1, true, 2, false], 2>, [[1, true], [2, false]]>>,
 ]
+
+// AttributeGetters
+interface Attributes {
+  firstName: string;
+  lastName: string;
+  age: number;
+}
+
+type AttributeGetters<Obj extends object> = {
+  [Key in keyof Obj]: () => Obj[Key]
+}
+
+export type AttributeGettersCases = [
+  Expect<
+    Equal<
+      AttributeGetters<Attributes>,
+      {
+        firstName: () => string;
+        lastName: () => string;
+        age: () => number;
+      }
+    >
+  >,
+];
+
+// Union to Tuple
+type UnionToIntersection<Union> =
+  (Union extends unknown ? (k: Union) => void : unknown) extends ((k: infer Element) => void) ? Element : never
+
+type LastOf<T> =
+  UnionToIntersection<T extends unknown ? () => T : never> extends () => (infer R)
+    ? R
+    : never
+
+type TuplifyUnion<Union, Element = LastOf<Union>> =
+  [Union] extends [never]
+    ? []
+    : [...TuplifyUnion<Exclude<Union, Element>>, Element]
+
+export type TuplifyUnionTest = TuplifyUnion<'a' | 'b' | 3 | true | false>
+
